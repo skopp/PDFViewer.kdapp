@@ -15,10 +15,10 @@ scriptPath = "https://#{nickname}.koding.com/.applications/pdfviewer/app/pdf.js"
 #pdfFileName = "http://kankartali.com/go.pdf"
 #pdfFileName = "http://kankartali.com/sample.pdf"
 #pdfFileName = "https://#{nickname}.koding.com/.applications/pdfviewer/sample.pdf"
-#pdfFileName = "/Users/uygary/Applications/PDFViewer.kdapp/sample.pdf"
+#pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/sample.pdf"
 pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/go.pdf"
 #pdfFileName = "/Users/#{nickname}/Applications/Sample.kdapp/index.coffee"
-#pdfFileName = "/Users/uygary/Applications/PDFViewer.kdapp/resources/pdf.128.png"
+#pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/resources/pdf.128.png"
 
 pdfFile = null
 currentIndex = 0
@@ -217,14 +217,18 @@ renderPdf = (fileName) ->
         KD.log "Fetching file: #{pdfFileName}"
         file = FSHelper.createFileFromPath(pdfFileName)
         file.fetchContents (error, content)->
+            #At this point, the binary file isn't received via wss:// due to invalid UTF-8 characters.
             if error
                 KD.log "File fetch error: #{error}"
             else
                 KD.log "File fetched"
-                KD.log "File length: #{content.length}"
-                KD.log content
+				
+                #If the file being fetched is a plain-text file, it can be seen on the console here.
+                #KD.log "File content: #{content}"
                 
+                #TODO: Fix the WSS binary UTF-8 problem, remove the return keyword, and start working on rendering the file fetched directly from stream.
                 return
+				
                 pdfRenderer.getDocument(content).then (pdf) ->
                     KD.log "Read PDF document:"
                     KD.log pdf
