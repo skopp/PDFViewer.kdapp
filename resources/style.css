@@ -1,0 +1,15 @@
+.canvasContainer {
+    
+}
+
+.thumbnailContainer {
+    background-color: #DDD;
+    margin: 5px;
+}
+
+.index-input {
+    margin: 0px;
+    height: 25px;
+    width: 36px;
+    font-family: monospace;
+}
