@@ -35,48 +35,52 @@ producer = ""
 pdfTitle = ""
 
 
-#Javascript injector for pdf.js
-class ScriptInjector extends KDCustomHTMLView
-    constructor: () ->
-        super
-    
-    partial: -> 
-    pistachio: () ->
-        "
-        <script type='text/javascript' src='#{scriptPath}'></script>
-        "
-  
-    viewAppended: () ->
-        @setTemplate do @pistachio
-
-#Canvas injector
-class CanvasInjector extends KDCustomHTMLView
-    constructor: (@thumbPage = null) ->
-        super null
-        
-        if @thumbPage == null or @thumbPage == undefined
-            @canvasId = defaultCanvas
-        else
-            @canvasId = "thumbnail-#{@thumbPage}"
-    
-    
-    partial: -> 
-    pistachio: ()->
-        "
-        <canvas id='#{@canvasId}' class='pdfCanvas'></canvas>
-        "
-  
-    viewAppended: () ->
-        @setTemplate do @pistachio
-    
-    click: =>
-        if @thumbPage != null
-            renderPage @thumbPage
-
-
 
 #Main app view
 class PDFViewerApp extends KDView
+
+    #Javascript injector for pdf.js
+    class ScriptInjector extends KDCustomHTMLView
+        constructor: () ->
+            super
+        
+        partial: -> 
+        pistachio: () ->
+            "
+            <script type='text/javascript' src='#{scriptPath}'></script>
+            "
+      
+        viewAppended: () ->
+            @setTemplate do @pistachio
+    
+    #Canvas injector
+    class CanvasInjector extends KDCustomHTMLView
+        constructor: (@thumbPage = null) ->
+            super null
+            
+            if @thumbPage == null or @thumbPage == undefined
+                @canvasId = defaultCanvas
+            else
+                @canvasId = "thumbnail-#{@thumbPage}"
+        
+        
+        partial: -> 
+        pistachio: ()->
+            "
+            <canvas id='#{@canvasId}' class='pdfCanvas'></canvas>
+            "
+        
+        viewAppended: () ->
+            @setTemplate do @pistachio
+        
+        click: =>
+            if @thumbPage != null
+                renderPage @thumbPage
+        
+    
+    
+    indexView = null
+    
     viewAppended:->
         super
         
@@ -84,6 +88,7 @@ class PDFViewerApp extends KDView
         @addSubView scriptInjector
         
         canvasInjector = new CanvasInjector
+            
         
         headerView = new KDHeaderView
             type: "big"
@@ -94,7 +99,6 @@ class PDFViewerApp extends KDView
             title       : "<"
             callback    : ->
                 renderPage currentIndex - 1, defaultCanvas, 1
-                indexView.setValue(currentIndex)
         
         indexView = new KDInputView
             cssClass : "index-input"
@@ -111,7 +115,6 @@ class PDFViewerApp extends KDView
             title       : ">"
             callback    : ->
                 renderPage currentIndex + 1, defaultCanvas, 1
-                indexView.setValue(currentIndex)
         
         navSplitView = new KDSplitView
             type        : "vertical"
@@ -160,58 +163,63 @@ class PDFViewerApp extends KDView
                 renderPage thumbnailPage, "thumbnail-#{thumbnailPage}", 0.22
             
 
-
-#Renders the page with the given index.
-renderPage = (pageNo, canvasId = defaultCanvas, scale = 1.0) ->
-    KD.log "Rendering page #{pageNo}."
     
-    try
-        if pageNo > pageCount or pageNo == 0
-            KD.log "Requested index is out of bounds."
-            return
+    #Renders the page with the given index.
+    renderPage = (pageNo, canvasId = defaultCanvas, scale = 1.0) ->
+        KD.log "Rendering page #{pageNo}."
         
-        #Obviously these hacks and slashes are way too ugly. They're to be cleaned up later on.
-        currentIndex = pageNo if canvasId == defaultCanvas
-        pdfFile.getPage(pageNo).then (page) ->
-            KD.log "Extracted page:"
-            #KD.log page
+        try
+            if pageNo > pageCount or pageNo == 0
+                KD.log "Requested index is out of bounds."
+                return
             
-            viewport = page.getViewport(scale)
-            canvas = document.getElementById canvasId
-            context = canvas.getContext "2d"
-            canvas.height = viewport.height
-            canvas.width = viewport.width
-            renderContext =
-                canvasContext: context
-                viewport: viewport
+            #Obviously these hacks and slashes are way too ugly. They're to be cleaned up later on.
+            if canvasId == defaultCanvas
+                currentIndex = pageNo
+                indexView.setValue currentIndex
             
-            page.render renderContext
+            pdfFile.getPage(pageNo).then (page) ->
+                KD.log "Extracted page:"
+                #KD.log page
+                
+                viewport = page.getViewport(scale)
+                canvas = document.getElementById canvasId
+                context = canvas.getContext "2d"
+                canvas.height = viewport.height
+                canvas.width = viewport.width
+                renderContext =
+                    canvasContext: context
+                    viewport: viewport
+                
+                page.render renderContext
+                
+                KD.log "Render complete."
+        catch error
+            message = "ERROR: Type:[#{error.type}], Message:[#{error.message}]"
+            KD.log message
+            KD.log error
             
-            KD.log "Render complete."
-    catch error
-        message = "ERROR: Type:[#{error.type}], Message:[#{error.message}]"
-        KD.log message
-        KD.log error
-        
-        modal = new KDModalView
-            title: "Error"
-            content: message
-            height: "auto"
-            overlay: yes
-            buttons:
-                OK:
-                    loader:
-                        color: "#ffffff"
-                        diameter: 16
-                    style: "css-class"
-                    callback: ->
-                        new KDNotificationView
-                            title: "Please try restarting the application."
-                        modal.destroy()
-        
+            modal = new KDModalView
+                title: "Error"
+                content: message
+                height: "auto"
+                overlay: yes
+                buttons:
+                    OK:
+                        loader:
+                            color: "#ffffff"
+                            diameter: 16
+                        style: "css-class"
+                        callback: ->
+                            new KDNotificationView
+                                title: "Please try restarting the application."
+                            modal.destroy()
+            
+
+
 
 #Invokes PDFJS in order to initialize the PDF file.
-renderPdf = (fileName) ->
+parsePdf = (fileName) ->
     KD.log "Initializing document."
     
     if disableWorker
@@ -259,7 +267,8 @@ do ->
             notify "pdfRenderer is undefined."
             return
         
-        renderPdf(pdfFileName)
+        #Parse the document and set initial values.
+        parsePdf pdfFileName
         
     catch error
         notify error
