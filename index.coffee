@@ -10,15 +10,9 @@
 } = KD.classes
 
 pdfRenderer = PDFJS
+base64Decoder = Base64Binary
 scriptPath = "https://#{nickname}.koding.com/.applications/pdfviewer/app/pdf.js"
-
-#pdfFileName = "http://kankartali.com/go.pdf"
-#pdfFileName = "http://kankartali.com/sample.pdf"
-#pdfFileName = "https://#{nickname}.koding.com/.applications/pdfviewer/sample.pdf"
-#pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/sample.pdf"
-pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/go.pdf"
-#pdfFileName = "/Users/#{nickname}/Applications/Sample.kdapp/index.coffee"
-#pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/resources/pdf.128.png"
+pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/sample.pdf"
 
 pdfFile = null
 currentIndex = 0
@@ -166,7 +160,8 @@ renderPage = (pageNo, canvasId = "canvasView", scale = 1.0) ->
             KD.log "Requested index is out of bounds."
             return
         
-        currentIndex = pageNo
+        #Obviously these hacks and slashes are way too ugly. They're to be cleaned up later on.
+        currentIndex = pageNo if canvasId == "canvasView"
         pdfFile.getPage(pageNo).then (page) ->
             KD.log "Extracted page:"
             #KD.log page
@@ -216,47 +211,64 @@ renderPdf = (fileName) ->
     try
         KD.log "Fetching file: #{pdfFileName}"
         file = FSHelper.createFileFromPath(pdfFileName)
-        file.fetchContents (error, content)->
-            #At this point, the binary file isn't received via wss:// due to invalid UTF-8 characters.
-            if error
-                KD.log "File fetch error: #{error}"
-            else
-                KD.log "File fetched"
-				
-                #If the file being fetched is a plain-text file, it can be seen on the console here.
-                #KD.log "File content: #{content}"
+        doKiteRequest "base64 #{pdfFileName}", (encodedContent) =>
+        
+        #file.fetchContents (error, content)->
+        #    #At this point, the binary file isn't received via wss:// due to invalid UTF-8 characters.
+        #    if error
+        #        KD.log "File fetch error: #{error}"
+        #    else
+        #        KD.log "File fetched"
+		#		
+        #        #If the file being fetched is a plain-text file, it can be seen on the console here.
+        #        #KD.log "File content: #{content}"
+        #        
+        #        #TODO: Fix the WSS binary UTF-8 problem, remove the return keyword, and start working on rendering the file fetched directly from stream.
+            
+            KD.log encodedContent
+            #return
+            #content = atob encodedContent
+            KD.log "Decoding Base64 encoded file"
+            content = base64Decoder.decodeArrayBuffer encodedContent
+            KD.log "Base64 decode complete."
+			
+            pdfRenderer.getDocument(content).then (pdf) ->
+                KD.log "Read PDF document:"
+                #KD.log pdf
                 
-                #TODO: Fix the WSS binary UTF-8 problem, remove the return keyword, and start working on rendering the file fetched directly from stream.
-                return
-				
-                pdfRenderer.getDocument(content).then (pdf) ->
-                    KD.log "Read PDF document:"
-                    KD.log pdf
-                    
-                    pdfFile = pdf
-                    
-                    #Retrieve document properties.
-                    author = pdfFile.pdfInfo.info.Author
-                    creator = pdfFile.pdfInfo.info.Creator
-                    modificationDate = pdfFile.pdfInfo.info.ModDate
-                    pageCount = pdfFile.pdfInfo.numPages
-                    pdfVersion = pdfFile.pdfInfo.info.PDFFormatVersion
-                    producer = pdfFile.pdfInfo.info.Producer
-                    pdfTitle = pdfFile.pdfInfo.info.Title
-                    
-                    #Display the app itself
-                    KD.log "PDF title: #{pdfTitle}"
-                    appView.addSubView new PDFViewerApp
+                pdfFile = pdf
+                
+                #Retrieve document properties.
+                author = pdfFile.pdfInfo.info.Author
+                creator = pdfFile.pdfInfo.info.Creator
+                modificationDate = pdfFile.pdfInfo.info.ModDate
+                pageCount = pdfFile.pdfInfo.numPages
+                pdfVersion = pdfFile.pdfInfo.info.PDFFormatVersion
+                producer = pdfFile.pdfInfo.info.Producer
+                pdfTitle = pdfFile.pdfInfo.info.Title
+                
+                #Display the app itself
+                KD.log "PDF title: #{pdfTitle}"
+                appView.addSubView new PDFViewerApp
                 
     catch error
         message = "ERROR: Type:[#{error.type}], Message:[#{error.message}]"
         notify message
-        
+
 
 notify = (message) ->
     KD.log message
     new KDNotificationView
         title : message
+
+doKiteRequest = (command, callback) ->
+    KD.log "Performing kite request: #{command}"
+    KD.getSingleton('kiteController').run command, (error, content) =>
+        unless error
+            KD.log "Kite request performed: #{command}"
+            callback(content) if callback
+        else
+            notify "An error occured while processing kite request: #{error}"
 
 
 #Instantiate the app.

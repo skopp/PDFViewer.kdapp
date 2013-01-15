@@ -13,6 +13,7 @@
     "blocks": {
       "app": {
         "files": [
+          "./app/base64-binary.js",
           "./app/pdf.js",
           "./index.coffee"
         ]

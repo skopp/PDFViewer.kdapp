@@ -1,45 +1,4 @@
-var PDFJS={};
-(function pdfjsWrapper(){
-    PDFJS.build="089b60d";
-    var globalScope=typeof window==="undefined"?this:window;
-    var isWorker=typeof window=="undefined";
-    var ERRORS=0,WARNINGS=1,INFOS=5;
-    var verbosity=WARNINGS;
-    if(!globalScope.PDFJS)globalScope.PDFJS={};
-    function getPdf(arg,callback){
-        var params=arg;
-        if(typeof arg==="string")params={url:arg};
-        var xhr=new XMLHttpRequest;
-        xhr.open("GET",params.url);
-        var headers=params.headers;
-        if(headers)for(var property in headers){
-            if(typeof headers[property]==="undefined")continue;
-        xhr.setRequestHeader(property,params.headers[property])}xhr.mozResponseType=xhr.responseType="arraybuffer";
-        var protocol=params.url.substring(0,params.url.indexOf(":")+1);
-        xhr.expected=protocol==="http:"||protocol==="https:"?200:0;
-        if("progress"in params)xhr.onprogress=params.progress||undefined;
-        var calledErrorBack=false;
-        if("error"in params)xhr.onerror=function errorBack(){
-            if(!calledErrorBack){
-                calledErrorBack=true;params.error()
-            }
-        };
-        xhr.onreadystatechange=function getPdfOnreadystatechange(e){
-            if(xhr.readyState===4)
-                if(xhr.status===xhr.expected){
-                    var data=xhr.mozResponseArrayBuffer||xhr.mozResponse||xhr.responseArrayBuffer||xhr.response;callback(data)
-                }
-                else if(params.error&&!calledErrorBack){
-                    calledErrorBack=true;params.error(e)
-                }
-        };
-        xhr.send(null)
-    }
-    PDFJS.getPdf=getPdf;
-    globalScope.PDFJS.getPdf=getPdf;
-    globalScope.PDFJS.pdfBug=false;
-    var Page=function PageClosure(){
-        function Page(xref,pageIndex,pageDict,ref){this.pageIndex=pageIndex;this.pageDict=pageDict;this.xref=xref;this.ref=ref;this.displayReadyPromise=null}Page.prototype={getPageProp:function Page_getPageProp(key){return this.pageDict.get(key)},
+var PDFJS={};(function pdfjsWrapper(){PDFJS.build="089b60d";var globalScope=typeof window==="undefined"?this:window;var isWorker=typeof window=="undefined";var ERRORS=0,WARNINGS=1,INFOS=5;var verbosity=WARNINGS;if(!globalScope.PDFJS)globalScope.PDFJS={};function getPdf(arg,callback){var params=arg;if(typeof arg==="string")params={url:arg};var xhr=new XMLHttpRequest;xhr.open("GET",params.url);var headers=params.headers;if(headers)for(var property in headers){if(typeof headers[property]==="undefined")continue;xhr.setRequestHeader(property,params.headers[property])}xhr.mozResponseType=xhr.responseType="arraybuffer";var protocol=params.url.substring(0,params.url.indexOf(":")+1);xhr.expected=protocol==="http:"||protocol==="https:"?200:0;if("progress"in params)xhr.onprogress=params.progress||undefined;var calledErrorBack=false;if("error"in params)xhr.onerror=function errorBack(){if(!calledErrorBack){calledErrorBack=true;params.error()}};xhr.onreadystatechange=function getPdfOnreadystatechange(e){if(xhr.readyState===4)if(xhr.status===xhr.expected){var data=xhr.mozResponseArrayBuffer||xhr.mozResponse||xhr.responseArrayBuffer||xhr.response;callback(data)}else if(params.error&&!calledErrorBack){calledErrorBack=true;params.error(e)}};xhr.send(null)}PDFJS.getPdf=getPdf;globalScope.PDFJS.getPdf=getPdf;globalScope.PDFJS.pdfBug=false;var Page=function PageClosure(){function Page(xref,pageIndex,pageDict,ref){this.pageIndex=pageIndex;this.pageDict=pageDict;this.xref=xref;this.ref=ref;this.displayReadyPromise=null}Page.prototype={getPageProp:function Page_getPageProp(key){return this.pageDict.get(key)},
 inheritPageProp:function Page_inheritPageProp(key){var dict=this.pageDict;var obj=dict.get(key);while(obj===undefined){dict=dict.get("Parent");if(!dict)break;obj=dict.get(key)}return obj},get content(){return shadow(this,"content",this.getPageProp("Contents"))},get resources(){return shadow(this,"resources",this.inheritPageProp("Resources"))},get mediaBox(){var obj=this.inheritPageProp("MediaBox");if(!isArray(obj)||obj.length!==4)obj=[0,0,612,792];return shadow(this,"mediaBox",obj)},get view(){var mediaBox=
 this.mediaBox;var cropBox=this.inheritPageProp("CropBox");if(!isArray(cropBox)||cropBox.length!==4)return shadow(this,"view",mediaBox);cropBox=Util.intersect(cropBox,mediaBox);if(!cropBox)return shadow(this,"view",mediaBox);return shadow(this,"view",cropBox)},get annotations(){return shadow(this,"annotations",this.inheritPageProp("Annots"))},get rotate(){var rotate=this.inheritPageProp("Rotate")||0;if(rotate%90!=0)rotate=0;else if(rotate>=360)rotate=rotate%360;else if(rotate<0)rotate=(rotate%360+
 360)%360;return shadow(this,"rotate",rotate)},getContentStream:function Page_getContentStream(){var content=this.content;if(isArray(content)){var xref=this.xref;var i,n=content.length;var streams=[];for(i=0;i<n;++i)streams.push(xref.fetchIfRef(content[i]));content=new StreamsSequenceStream(streams)}else if(isStream(content))content.reset();else if(!content)content=new NullStream;return content},getOperatorList:function Page_getOperatorList(handler,dependency){var xref=this.xref;var contentStream=
@@ -80,30 +39,7 @@ this.name);if(this.isRejected)error("The Promise was already rejected "+this.nam
 this.name);if(this.isResolved)error("The Promise was already resolved "+this.name);this.isRejected=true;this.error=reason||null;var errbacks=this.errbacks;for(var i=0,ii=errbacks.length;i<ii;i++)errbacks[i].call(null,reason,exception)},then:function Promise_then(callback,errback,progressback){if(!callback)error("Requiring callback"+this.name);if(this.isResolved){var data=this.data;callback.call(null,data)}else if(this.isRejected&&errback){var error=this.error;errback.call(null,error)}else{this.callbacks.push(callback);
 if(errback)this.errbacks.push(errback)}if(progressback)this.progressbacks.push(progressback)}};return Promise}();var StatTimer=function StatTimerClosure(){function rpad(str,pad,length){while(str.length<length)str+=pad;return str}function StatTimer(){this.started={};this.times=[];this.enabled=true}StatTimer.prototype={time:function StatTimer_time(name){if(!this.enabled)return;if(name in this.started)throw"Timer is already running for "+name;this.started[name]=Date.now()},timeEnd:function StatTimer_timeEnd(name){if(!this.enabled)return;
 if(!(name in this.started))throw"Timer has not been started for "+name;this.times.push({"name":name,"start":this.started[name],"end":Date.now()});delete this.started[name]},toString:function StatTimer_toString(){var times=this.times;var out="";var longest=0;for(var i=0,ii=times.length;i<ii;++i){var name=times[i]["name"];if(name.length>longest)longest=name.length}for(var i=0,ii=times.length;i<ii;++i){var span=times[i];var duration=span.end-span.start;out+=rpad(span["name"]," ",longest)+" "+duration+
-"ms\n"}return out}};return StatTimer}();PDFJS.createBlob=function createBlob(data,contentType){if(typeof Blob==="function")return new Blob([data],{type:contentType});var bb=new MozBlobBuilder;bb.append(data);return bb.getBlob(contentType)};
-PDFJS.getDocument=function getDocument(source){
-    var workerInitializedPromise,workerReadyPromise,transport;
-    if(typeof source==="string")source={url:source};
-    else if(isArrayBuffer(source))source={data:source};
-    else if(typeof source!=="object")error("Invalid parameter in getDocument, need either Uint8Array, "+"string or a parameter object");
-    if(!source.url&&!source.data)error("Invalid parameter array, need either .data or .url");
-    var params={};
-    for(var key in source){
-        if(key==="url"&&typeof window!=="undefined"){
-            params[key]=combineUrl(window.location.href,source[key]);
-            continue
-        }
-        params[key]=source[key]
-    }
-    workerInitializedPromise=new PDFJS.Promise;
-    workerReadyPromise=new PDFJS.Promise;
-    transport=new WorkerTransport(workerInitializedPromise,workerReadyPromise);
-    workerInitializedPromise.then(function transportInitialized(){
-        transport.fetchDocument(params)
-    });
-    return workerReadyPromise
-};
-var PDFDocumentProxy=function PDFDocumentProxyClosure(){function PDFDocumentProxy(pdfInfo,transport){this.pdfInfo=pdfInfo;this.transport=transport}PDFDocumentProxy.prototype={get numPages(){return this.pdfInfo.numPages},get fingerprint(){return this.pdfInfo.fingerprint},get embeddedFontsUsed(){return this.transport.embeddedFontsUsed},getPage:function PDFDocumentProxy_getPage(number){return this.transport.getPage(number)},getDestinations:function PDFDocumentProxy_getDestinations(){var promise=
+"ms\n"}return out}};return StatTimer}();PDFJS.createBlob=function createBlob(data,contentType){if(typeof Blob==="function")return new Blob([data],{type:contentType});var bb=new MozBlobBuilder;bb.append(data);return bb.getBlob(contentType)};PDFJS.getDocument=function getDocument(source){var workerInitializedPromise,workerReadyPromise,transport;if(typeof source==="string")source={url:source};else if(isArrayBuffer(source))source={data:source};else if(typeof source!=="object")error("Invalid parameter in getDocument, need either Uint8Array, "+"string or a parameter object");if(!source.url&&!source.data)error("Invalid parameter array, need either .data or .url");var params={};for(var key in source){if(key==="url"&&typeof window!=="undefined"){params[key]=combineUrl(window.location.href,source[key]);continue}params[key]=source[key]}workerInitializedPromise=new PDFJS.Promise;workerReadyPromise=new PDFJS.Promise;transport=new WorkerTransport(workerInitializedPromise,workerReadyPromise);workerInitializedPromise.then(function transportInitialized(){transport.fetchDocument(params)});return workerReadyPromise};var PDFDocumentProxy=function PDFDocumentProxyClosure(){function PDFDocumentProxy(pdfInfo,transport){this.pdfInfo=pdfInfo;this.transport=transport}PDFDocumentProxy.prototype={get numPages(){return this.pdfInfo.numPages},get fingerprint(){return this.pdfInfo.fingerprint},get embeddedFontsUsed(){return this.transport.embeddedFontsUsed},getPage:function PDFDocumentProxy_getPage(number){return this.transport.getPage(number)},getDestinations:function PDFDocumentProxy_getDestinations(){var promise=
 new PDFJS.Promise;var destinations=this.pdfInfo.destinations;promise.resolve(destinations);return promise},getOutline:function PDFDocumentProxy_getOutline(){var promise=new PDFJS.Promise;var outline=this.pdfInfo.outline;promise.resolve(outline);return promise},getMetadata:function PDFDocumentProxy_getMetadata(){var promise=new PDFJS.Promise;var info=this.pdfInfo.info;var metadata=this.pdfInfo.metadata;promise.resolve({info:info,metadata:metadata?new PDFJS.Metadata(metadata):null});return promise},
 isEncrypted:function PDFDocumentProxy_isEncrypted(){var promise=new PDFJS.Promise;promise.resolve(this.pdfInfo.encrypted);return promise},getData:function PDFDocumentProxy_getData(){var promise=new PDFJS.Promise;this.transport.getData(promise);return promise},destroy:function PDFDocumentProxy_destroy(){this.transport.destroy()}};return PDFDocumentProxy}();var PDFPageProxy=function PDFPageProxyClosure(){function PDFPageProxy(pageInfo,transport){this.pageInfo=pageInfo;this.transport=transport;this.stats=
 new StatTimer;this.stats.enabled=!!globalScope.PDFJS.enableStats;this.commonObjs=transport.commonObjs;this.objs=new PDFObjects;this.renderInProgress=false;this.cleanupAfterRender=false}PDFPageProxy.prototype={get pageNumber(){return this.pageInfo.pageIndex+1},get rotate(){return this.pageInfo.rotate},get ref(){return this.pageInfo.ref},get view(){return this.pageInfo.view},getViewport:function PDFPageProxy_getViewport(scale,rotate){if(arguments.length<2)rotate=this.rotate;return new PDFJS.PageViewport(this.view,
