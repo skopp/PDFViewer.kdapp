@@ -10,6 +10,8 @@
 } = KD.classes
 
 pdfRenderer = PDFJS
+#PDFJS worker is disabled since there are no external requirements left.
+pdfRenderer.disableWorker = true
 base64Decoder = Base64Binary
 scriptPath = "https://#{nickname}.koding.com/.applications/pdfviewer/app/pdf.js"
 pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/sample.pdf"
@@ -18,11 +20,6 @@ defaultCanvas = "pdfCanvasView"
 pdfFile = null
 currentIndex = 0
 
-#Set PDFJS worker source
-pdfRenderer.workerSrc = scriptPath
-
-#Is PDFJS worker disabled
-disableWorker = false
 
 
 #PDF information
@@ -38,27 +35,14 @@ pdfTitle = ""
 
 #Main app view
 class PDFViewerApp extends KDView
-
-    #Javascript injector for pdf.js
-    class ScriptInjector extends KDCustomHTMLView
-        constructor: () ->
-            super
-        
-        partial: -> 
-        pistachio: () ->
-            "
-            <script type='text/javascript' src='#{scriptPath}'></script>
-            "
-      
-        viewAppended: () ->
-            @setTemplate do @pistachio
+    indexView = null
     
     #Canvas injector
     class CanvasInjector extends KDCustomHTMLView
         constructor: (@thumbPage = null) ->
             super null
             
-            if @thumbPage == null or @thumbPage == undefined
+            if @thumbPage == null
                 @canvasId = defaultCanvas
             else
                 @canvasId = "thumbnail-#{@thumbPage}"
@@ -79,13 +63,8 @@ class PDFViewerApp extends KDView
         
     
     
-    indexView = null
-    
     viewAppended:->
         super
-        
-        scriptInjector = new ScriptInjector {tagName:'span'}
-        @addSubView scriptInjector
         
         canvasInjector = new CanvasInjector
             
@@ -136,7 +115,7 @@ class PDFViewerApp extends KDView
             title       : "Go"
             callback    : ->
                 targetIndex = indexView.getValue()
-                renderPage targetIndex
+                renderPage parseInt targetIndex
         
         navSplitView = new KDSplitView
             type        : "vertical"
@@ -199,8 +178,11 @@ class PDFViewerApp extends KDView
                 KD.log "Requested index is out of bounds."
                 indexView.setValue currentIndex
                 return
-            
             #Obviously these hacks and slashes are way too ugly. They're to be cleaned up later on.
+            if pageNo is currentIndex and canvasId is defaultCanvas
+                KD.log "Page already rendered."
+                return
+            
             if canvasId == defaultCanvas
                 currentIndex = pageNo
                 indexView.setValue currentIndex
@@ -247,23 +229,16 @@ class PDFViewerApp extends KDView
 
 #Invokes PDFJS in order to initialize the PDF file.
 parsePdf = (fileName) ->
-    KD.log "Initializing document."
-    
-    if disableWorker
-        KD.log "Disabling PDFJS worker"
-    pdfRenderer.disableWorker = disableWorker
-    
     try
         KD.log "Fetching file: #{pdfFileName}"
         #file = FSHelper.createFileFromPath(pdfFileName)
         doKiteRequest "base64 #{pdfFileName}", (encodedContent) =>
-        
-            KD.log encodedContent
             KD.log "Decoding Base64 encoded file"
             content = base64Decoder.decodeArrayBuffer encodedContent
 			
+            KD.log "Parsing document."
             pdfRenderer.getDocument(content).then (pdf) ->
-                KD.log "Read PDF document:"
+                KD.log "Parsed PDF document:"
                 KD.log pdf.pdfInfo.info
                 
                 pdfFile = pdf
@@ -277,7 +252,7 @@ parsePdf = (fileName) ->
                 producer = pdfFile.pdfInfo.info.Producer
                 pdfTitle = pdfFile.pdfInfo.info.Title
                 
-                #Display the app itself
+                #Display the app itself.
                 appView.addSubView new PDFViewerApp
                 
     catch error

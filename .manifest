@@ -1,13 +1,13 @@
 {
   "devMode": true,
-  "version": "0.1",
+  "version": "0.2",
   "name": "PDFViewer",
   "identifier": "com.koding.apps.pdfviewer",
   "path": "~/Applications/PDFViewer.kdapp",
   "homepage": "uygary.koding.com/pdfviewer",
   "author": "Uygar Yilmaz",
   "repository": "git://github.com/uygary/pdfviewer.kdapp.git",
-  "description": "PDFViewer : a Koding application that parses and displays PDF files. Based on KDFramework, and uses Mozilla's pdf.js library.",
+  "description": "PDFViewer: a Koding application that parses and displays PDF files. Based on KDFramework, and uses Mozilla's pdf.js library.",
   "category": "web-app",
   "source": {
     "blocks": {
