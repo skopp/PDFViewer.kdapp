@@ -1,5 +1,7 @@
 .canvasContainer {
-    
+}
+.thumbnail-container {
+    overflow-y: scroll;
 }
 
 .thumbnailContainer {
@@ -12,4 +14,12 @@
     height: 25px;
     width: 36px;
     font-family: monospace;
+}
+
+.pdfCanvas {
+    margin:3px;
+    border:1px solid #DDD;
+    -moz-border-radius:2px;
+    -webkit-border-radius:2px;
+    border-radius:2px;
 }

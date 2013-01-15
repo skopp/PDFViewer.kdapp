@@ -13,6 +13,7 @@ pdfRenderer = PDFJS
 base64Decoder = Base64Binary
 scriptPath = "https://#{nickname}.koding.com/.applications/pdfviewer/app/pdf.js"
 pdfFileName = "/Users/#{nickname}/Applications/PDFViewer.kdapp/sample.pdf"
+defaultCanvas = "pdfCanvasView"
 
 pdfFile = null
 currentIndex = 0
@@ -50,19 +51,27 @@ class ScriptInjector extends KDCustomHTMLView
 
 #Canvas injector
 class CanvasInjector extends KDCustomHTMLView
-    constructor: (@canvasId = "canvasView") ->
+    constructor: (@thumbPage = null) ->
         super null
+        
+        if @thumbPage == null or @thumbPage == undefined
+            @canvasId = defaultCanvas
+        else
+            @canvasId = "thumbnail-#{@thumbPage}"
+    
     
     partial: -> 
     pistachio: ()->
         "
-        <div class='canvasContainer'>
-            <canvas id='#{@canvasId}'></canvas>
-        </div>
+        <canvas id='#{@canvasId}' class='pdfCanvas'></canvas>
         "
   
     viewAppended: () ->
         @setTemplate do @pistachio
+    
+    click: =>
+        if @thumbPage != null
+            renderPage @thumbPage
 
 
 
@@ -74,7 +83,7 @@ class PDFViewerApp extends KDView
         scriptInjector = new ScriptInjector {tagName:'span'}
         @addSubView scriptInjector
         
-        canvasInjector = new CanvasInjector "canvasView"
+        canvasInjector = new CanvasInjector
         
         headerView = new KDHeaderView
             type: "big"
@@ -84,7 +93,7 @@ class PDFViewerApp extends KDView
             cssClass    : "clean-gray index-input"
             title       : "<"
             callback    : ->
-                renderPage currentIndex - 1, "canvasView", 1
+                renderPage currentIndex - 1, defaultCanvas, 1
                 indexView.setValue(currentIndex)
         
         indexView = new KDInputView
@@ -101,7 +110,7 @@ class PDFViewerApp extends KDView
             cssClass    : "clean-gray index-input"
             title       : ">"
             callback    : ->
-                renderPage currentIndex + 1, "canvasView", 1
+                renderPage currentIndex + 1, defaultCanvas, 1
                 indexView.setValue(currentIndex)
         
         navSplitView = new KDSplitView
@@ -117,9 +126,10 @@ class PDFViewerApp extends KDView
             views       : [headerView, navSplitView]
         
         thumbnailsView = new KDView
+            cssClass    : "thumbnail-container"
         
         for thumbnailPage in [1..pageCount]
-            thumbnail = new CanvasInjector "thumbnail#{thumbnailPage}"
+            thumbnail = new CanvasInjector thumbnailPage
             thumbnailsView.addSubView thumbnail
         
         bottomSplitView = new KDSplitView
@@ -141,18 +151,18 @@ class PDFViewerApp extends KDView
             message = "No pages found in the document."
             notify message
         else
-            renderPage 1, "canvasView", 1
+            renderPage 1
             headerView.title = pdfTitle
             indexView.setValue(currentIndex)
             pageCountView.setValue(pageCount)
             
             for thumbnailPage in [1...pageCount]
-                renderPage thumbnailPage, "thumbnail#{thumbnailPage}", 0.25
+                renderPage thumbnailPage, "thumbnail-#{thumbnailPage}", 0.22
             
 
 
 #Renders the page with the given index.
-renderPage = (pageNo, canvasId = "canvasView", scale = 1.0) ->
+renderPage = (pageNo, canvasId = defaultCanvas, scale = 1.0) ->
     KD.log "Rendering page #{pageNo}."
     
     try
@@ -161,7 +171,7 @@ renderPage = (pageNo, canvasId = "canvasView", scale = 1.0) ->
             return
         
         #Obviously these hacks and slashes are way too ugly. They're to be cleaned up later on.
-        currentIndex = pageNo if canvasId == "canvasView"
+        currentIndex = pageNo if canvasId == defaultCanvas
         pdfFile.getPage(pageNo).then (page) ->
             KD.log "Extracted page:"
             #KD.log page
@@ -216,11 +226,10 @@ renderPdf = (fileName) ->
             KD.log encodedContent
             KD.log "Decoding Base64 encoded file"
             content = base64Decoder.decodeArrayBuffer encodedContent
-            KD.log "Base64 decode complete."
 			
             pdfRenderer.getDocument(content).then (pdf) ->
                 KD.log "Read PDF document:"
-                #KD.log pdf
+                KD.log pdf.pdfInfo.info
                 
                 pdfFile = pdf
                 
@@ -234,27 +243,11 @@ renderPdf = (fileName) ->
                 pdfTitle = pdfFile.pdfInfo.info.Title
                 
                 #Display the app itself
-                KD.log "PDF title: #{pdfTitle}"
                 appView.addSubView new PDFViewerApp
                 
     catch error
         message = "ERROR: Type:[#{error.type}], Message:[#{error.message}]"
         notify message
-
-
-notify = (message) ->
-    KD.log message
-    new KDNotificationView
-        title : message
-
-doKiteRequest = (command, callback) ->
-    KD.log "Performing kite request: #{command}"
-    KD.getSingleton('kiteController').run command, (error, content) =>
-        unless error
-            KD.log "Kite request performed: #{command}"
-            callback(content) if callback
-        else
-            notify "An error occured while processing kite request: #{error}"
 
 
 #Instantiate the app.
