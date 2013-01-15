@@ -159,7 +159,7 @@ class PDFViewerApp extends KDView
             indexView.setValue(currentIndex)
             pageCountView.setValue(pageCount)
             
-            for thumbnailPage in [1...pageCount]
+            for thumbnailPage in [1..pageCount]
                 renderPage thumbnailPage, "thumbnail-#{thumbnailPage}", 0.22
             
 
