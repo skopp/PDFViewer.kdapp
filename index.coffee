@@ -197,6 +197,7 @@ class PDFViewerApp extends KDView
         try
             if pageNo > pageCount or pageNo == 0
                 KD.log "Requested index is out of bounds."
+                indexView.setValue currentIndex
                 return
             
             #Obviously these hacks and slashes are way too ugly. They're to be cleaned up later on.
