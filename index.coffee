@@ -210,24 +210,10 @@ renderPdf = (fileName) ->
     
     try
         KD.log "Fetching file: #{pdfFileName}"
-        file = FSHelper.createFileFromPath(pdfFileName)
+        #file = FSHelper.createFileFromPath(pdfFileName)
         doKiteRequest "base64 #{pdfFileName}", (encodedContent) =>
         
-        #file.fetchContents (error, content)->
-        #    #At this point, the binary file isn't received via wss:// due to invalid UTF-8 characters.
-        #    if error
-        #        KD.log "File fetch error: #{error}"
-        #    else
-        #        KD.log "File fetched"
-		#		
-        #        #If the file being fetched is a plain-text file, it can be seen on the console here.
-        #        #KD.log "File content: #{content}"
-        #        
-        #        #TODO: Fix the WSS binary UTF-8 problem, remove the return keyword, and start working on rendering the file fetched directly from stream.
-            
             KD.log encodedContent
-            #return
-            #content = atob encodedContent
             KD.log "Decoding Base64 encoded file"
             content = base64Decoder.decodeArrayBuffer encodedContent
             KD.log "Base64 decode complete."
@@ -274,7 +260,6 @@ doKiteRequest = (command, callback) ->
 #Instantiate the app.
 do ->
     KD.log "Initializing app."
-    #getFile(pdfFileName)
     
     try
         if pdfRenderer is undefined or pdfRenderer is null or pdfRenderer is ""
