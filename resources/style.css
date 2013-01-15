@@ -1,12 +1,8 @@
 .canvasContainer {
 }
+
 .thumbnail-container {
     overflow-y: scroll;
-}
-
-.thumbnailContainer {
-    background-color: #DDD;
-    margin: 5px;
 }
 
 .index-input {
@@ -16,7 +12,7 @@
     font-family: monospace;
 }
 
-.pdfCanvas {
+.pdf-canvas {
     margin:3px;
     border:1px solid #DDD;
     -moz-border-radius:2px;

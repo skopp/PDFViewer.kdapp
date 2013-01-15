@@ -67,7 +67,7 @@ class PDFViewerApp extends KDView
         partial: -> 
         pistachio: ()->
             "
-            <canvas id='#{@canvasId}' class='pdfCanvas'></canvas>
+            <canvas id='#{@canvasId}' class='pdf-canvas'></canvas>
             "
         
         viewAppended: () ->
@@ -91,46 +91,69 @@ class PDFViewerApp extends KDView
             
         
         headerView = new KDHeaderView
-            type: "big"
-            title: pdfTitle
+            type        : "big"
+            title       : pdfTitle
         
         previousPageButton = new KDButtonView
             cssClass    : "clean-gray index-input"
             title       : "<"
             callback    : ->
-                renderPage currentIndex - 1, defaultCanvas, 1
-        
-        indexView = new KDInputView
-            cssClass : "index-input"
-            placeholder : "0"
-            readonly    : true
-        
-        pageCountView = new KDInputView
-            cssClass : "index-input"
-            placeholder : "0"
-            readonly    : true
+                renderPage currentIndex - 1
         
         nextPageButton = new KDButtonView
             cssClass    : "clean-gray index-input"
             title       : ">"
             callback    : ->
-                renderPage currentIndex + 1, defaultCanvas, 1
+                renderPage currentIndex + 1
+        
+        indexView = new KDInputView
+            cssClass : "index-input"
+            placeholder : "0"
+            validate    :
+                event       : "keyup"
+                rules       :
+                    required: yes
+                    regExp  : /^\d+$/
+                    
+                    #TODO: Find out how to implement custom validations.
+                    #minValue: (val) ->
+                    #    val < 1
+                    #maxValue: (val) ->
+                    #    val > pageCount
+                messages    :
+                    required: "Must input an index to go to a page."
+                    regExp  : "Numbers only please."
+                    #minValue : "Index cannot be negative."
+                    #maxValue : "Index cannot be greater than the page count."
+        
+        pageCountView = new KDInputView
+            cssClass    : "index-input"
+            placeholder : "0"
+            readonly    : true
+        
+        goToButton = new KDButtonView
+            cssClass    : "clean-gray index-input"
+            title       : "Go"
+            callback    : ->
+                targetIndex = indexView.getValue()
+                renderPage targetIndex
         
         navSplitView = new KDSplitView
             type        : "vertical"
             resizable   : no
-            sizes       : ["25px", "36px", "36px", "25px"]
-            views       : [previousPageButton, indexView, pageCountView, nextPageButton]
+            sizes       : ["25px", "25px", "36px", "36px", "36px"]
+            views       : [previousPageButton, nextPageButton, indexView, pageCountView, goToButton]
         
         topSplitView = new KDSplitView
             type        : "vertical"
             resizable   : no
-            sizes       : [null, "122px"]
+            sizes       : [null, "158px"]
             views       : [headerView, navSplitView]
         
         thumbnailsView = new KDView
             cssClass    : "thumbnail-container"
         
+        #Generate thumbnailviews.
         for thumbnailPage in [1..pageCount]
             thumbnail = new CanvasInjector thumbnailPage
             thumbnailsView.addSubView thumbnail
@@ -149,16 +172,19 @@ class PDFViewerApp extends KDView
         
         @addSubView mainSplitView
         KD.log "added mainSplitView"
-            
+        
+        #Set the title and page count.
+        headerView.title = pdfTitle
+        pageCountView.setValue(pageCount)
+        
         if pageCount is 0
             message = "No pages found in the document."
             notify message
         else
+            #Render the first page.
             renderPage 1
-            headerView.title = pdfTitle
-            indexView.setValue(currentIndex)
-            pageCountView.setValue(pageCount)
             
+            #Generate thumbnails.
             for thumbnailPage in [1..pageCount]
                 renderPage thumbnailPage, "thumbnail-#{thumbnailPage}", 0.22
             
